@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Untitled</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Habitat Ecosystem V4</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #121214; color: #E2E8F0; font-family: system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="p-2 flex flex-col items-center justify-start min-h-screen select-none">
+
+  <div class="w-full max-w-md bg-[#1A1A1E] rounded-xl p-4 shadow-2xl border border-[#27272A]">
+    
+    <!-- ZONE 1: FIXED HUD HEADER -->
+    <div class="mb-4 cursor-pointer" onclick="toggleView()">
+      <div class="flex justify-between items-baseline mb-2">
+        <h1 id="header-title" class="text-xs font-bold tracking-wider text-[#94A3B8]">HABITAT ECOSYSTEM V4</h1>
+        <div class="text-[11px] text-[#64748B] font-medium">Saturday, Jul 4, 2026</div>
+      </div>
+      <div class="flex justify-between items-center bg-[#121214] rounded-lg p-3 border border-[#27272A] hover:border-[#3F3F46] transition-all">
+        <div>
+          <p class="text-sm font-bold text-white">🔥 12 Days</p>
+          <span class="text-[9px] text-[#64748B]">Tap for Habit Analytics 📊</span>
+        </div>
+        <div class="text-right">
+          <p class="text-sm font-bold text-[#10B981]">📈 84% Consistency</p>
+          <p class="text-[10px] text-[#64748B]">100 Days</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAILY PROGRESS BATTERY -->
+    <div id="battery-zone" class="mb-4 bg-[#121214] rounded-lg p-3 border border-[#27272A]">
+      <div class="flex justify-between text-[10px] text-[#8E9AA8] mb-1.5 font-bold">
+        <span>DAILY PROGRESS BATTERY</span>
+        <span id="progress-percent" class="text-[#10B981]">0% ACTIVE</span>
+      </div>
+      <div id="battery-bar" class="w-full h-6 bg-[#27272A] rounded flex items-center p-1 gap-1 overflow-hidden"></div>
+    </div>
+
+    <!-- ZONE 2: MAIN SCROLLABLE TRACKER CANVAS -->
+    <div id="matrix-container" class="max-h-[420px] overflow-y-auto space-y-2 pr-1 scrollbar-none"></div>
+
+    <!-- HIDDEN ANALYTICS PANEL -->
+    <div id="analytics-container" class="hidden max-h-[420px] overflow-y-auto space-y-3 pr-1 scrollbar-none">
+      <div class="bg-[#121214] p-3 rounded-lg border border-[#27272A]">
+        <h3 class="text-xs font-bold text-white mb-2">📊 CORE HABIT CONSISTENCY PROFILE</h3>
+        <div id="habit-stats-list" class="space-y-1.5 text-xs"></div>
+      </div>
+      <div class="bg-[#121214] p-3 rounded-lg border border-[#27272A] flex justify-between items-center">
+        <div>
+          <h3 class="text-xs font-bold text-white">📂 Local History Logs</h3>
+          <p class="text-[10px] text-[#A1A1AA]">Date-wise summary file backup</p>
+        </div>
+        <button onclick="exportHistory()" class="text-[10px] bg-[#27272A] hover:bg-[#3F3F46] border border-[#3F3F46] text-white px-3 py-1.5 rounded font-bold transition-all">Export Copy</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const habits = [
+      { id: 1, name: '💤 Sleep', full: '6½ hrs', pivot: '6 hrs' },
+      { id: 2, name: '☀️ Sunlight', full: '2 mins +', pivot: '30 seconds' },
+      { id: 3, name: '🧘 Stretching', full: '2 mins', pivot: '30 seconds' },
+      { id: 4, name: '🥣 Breakfast', full: 'Oats', pivot: 'Milk / Nuts' },
+      { id: 5, name: '♠️ Game ♠️', full: '4 / 4 games', pivot: '2 / 4 games' },
+      { id: 6, name: '📚 Daily Revision', full: '2 + topics', pivot: '1 topic' },
+      { id: 7, name: '🏃 Exercise', full: 'Game / Workout', pivot: '2 min stretching' },
+      { id: 8, name: '📝 Regular Study', full: '50 mins', pivot: '15 mins' },
+      { id: 9, name: '👨‍🏫 Class', full: '2 hrs', pivot: '1 hr' },
+      { id: 10, name: '⏳ Coverup Study', full: '45 mins', pivot: '10 mins' },
+      { id: 11, name: '📰 Aeon / RC', full: 'Read full article', pivot: 'Read 1 paragraph' },
+      { id: 12, name: '🧩 DILR Daily', full: 'Solve 1 full set', pivot: '5 mins active trial on 1 set' },
+      { id: 13, name: '🙅‍♂️ Avoid outside food', full: 'No outside food', pivot: '1 home meal' },
+      { id: 14, name: '🚫 NP', full: 'None', pivot: '< 30 mins' },
+      { id: 15, name: '💧 Water', full: '3 L', pivot: '1.5 L' },
+      { id: 16, name: '📓 Journal & self-reflect', full: '2 points', pivot: '1 line bullet' },
+      { id: 17, name: '📅 Plan tomorrow\'s tasks', full: 'Full day', pivot: 'Some events' }
+    ];
+
+    const STORAGE_KEY = 'habitat_v4_states';
+    const TRACKING_DAY_KEY = 'habitat_v4_tracking_day';
+    const HISTORY_KEY = 'habitat_v4_history_log';
+    const ANALYTICS_KEY = 'habitat_v4_cumulative_metrics';
+
+    let showAnalytics = false;
+    let states = {};
+    let historyLog = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    let cumulativeMetrics = JSON.parse(localStorage.getItem(ANALYTICS_KEY)) || {};
+
+    // 3:00 AM Adjusted Day Calculation
+    function getTrackingDayString() {
+      const now = new Date();
+      if (now.getHours() < 3) {
+        now.setDate(now.getDate() - 1);
+      }
+      return now.toDateString();
+    }
+
+    const targetTrackingDay = getTrackingDayString();
+    const lastSavedTrackingDay = localStorage.getItem(TRACKING_DAY_KEY);
+
+    if (lastSavedTrackingDay !== targetTrackingDay && lastSavedTrackingDay !== null) {
+      const oldStates = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      let completedCount = 0;
+      let pivotedCount = 0;
+      let noneCount = 0;
+
+      habits.forEach(h => {
+        const s = oldStates[h.id] || 0;
+        if (!cumulativeMetrics[h.id]) cumulativeMetrics[h.id] = { totalDays: 0, activeDays: 0 };
+        
+        cumulativeMetrics[h.id].totalDays += 1;
+        if (s > 0) cumulativeMetrics[h.id].activeDays += 1;
+
+        if (s === 2) completedCount++;
+        else if (s === 1) pivotedCount++;
+        else noneCount++;
+      });
+
+      historyLog.push({
+        date: lastSavedTrackingDay,
+        completed: completedCount,
+        pivoted: pivotedCount,
+        none: noneCount
+      });
+
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(historyLog));
+      localStorage.setItem(ANALYTICS_KEY, JSON.stringify(cumulativeMetrics));
+
+      habits.forEach(h => states[h.id] = 0);
+      localStorage.setItem(TRACKING_DAY_KEY, targetTrackingDay);
+      save();
+    } else {
+      localStorage.setItem(TRACKING_DAY_KEY, targetTrackingDay);
+      const savedStates = localStorage.getItem(STORAGE_KEY);
+      states = savedStates ? JSON.parse(savedStates) : {};
+      if (!savedStates) habits.forEach(h => states[h.id] = 0);
+    }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(states));
+    }
+
+    function toggleView() {
+      showAnalytics = !showAnalytics;
+      document.getElementById('matrix-container').classList.toggle('hidden', showAnalytics);
+      document.getElementById('battery-zone').classList.toggle('hidden', showAnalytics);
+      document.getElementById('analytics-container').classList.toggle('hidden', !showAnalytics);
+      document.getElementById('header-title').innerText = showAnalytics ? "ANALYTICS PROFILE" : "HABITAT ECOSYSTEM V4";
+      if (showAnalytics) renderAnalytics();
+    }
+
+    function renderAnalytics() {
+      const statsList = document.getElementById('habit-stats-list');
+      statsList.innerHTML = '';
+      habits.forEach(h => {
+        const data = cumulativeMetrics[h.id] || { totalDays: 1, activeDays: 0 };
+        const rate = Math.round((data.activeDays / Math.max(data.totalDays, 1)) * 100);
+        const row = document.createElement('div');
+        row.className = "flex justify-between items-center py-1 border-b border-[#27272A]/40 text-[#E2E8F0]";
+        row.innerHTML = `<span>${h.name}</span><span class="font-bold text-[#10B981]">${rate}% Consistency</span>`;
+        statsList.appendChild(row);
+      });
+    }
+
+    function exportHistory() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(historyLog, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "habitat_ecosystem_history.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function render() {
+      const container = document.getElementById('matrix-container');
+      const battery = document.getElementById('battery-bar');
+      container.innerHTML = '';
+      battery.innerHTML = '';
+
+      let activeCount = 0;
+
+      habits.forEach(h => {
+        const state = states[h.id] || 0;
+        if (state > 0) activeCount++;
+
+        const card = document.createElement('div');
+        card.className = `flex justify-between items-center p-3 rounded-lg border transition-all cursor-pointer ${state === 2 ? 'bg-[#064E3B]/20 border-[#065F46]' : state === 1 ? 'bg-[#451A03]/20 border-[#78350F]' : 'bg-[#121214] border-[#27272A]'}`;
+        card.onclick = () => {
+          if (showAnalytics) return;
+          states[h.id] = ((states[h.id] || 0) + 1) % 3;
+          save();
+          render();
+        };
+
+        let badge = `<span class="text-[10px] px-2 py-0.5 rounded font-bold bg-[#27272A] text-[#A1A1AA]">NONE</span>`;
+        if (state === 1) badge = `<span class="text-[10px] px-2 py-0.5 rounded font-bold bg-[#451A03] text-[#F59E0B] border border-[#78350F]">PIVOT</span>`;
+        if (state === 2) badge = `<span class="text-[10px] px-2 py-0.5 rounded font-bold bg-[#064E3B] text-[#10B981] border border-[#065F46]">COMPLETE</span>`;
+
+        card.innerHTML = `
+          <div class="max-w-[70%]">
+            <p class="text-xs font-bold text-white tracking-wide">${h.name}</p>
+            <p class="text-[11px] text-[#F8FAFC] font-medium">• Full: ${h.full}</p>
+            <p class="text-[11px] text-[#A1A1AA] font-normal">• Pivot: ${h.pivot}</p>
+          </div>
+          <div>${badge}</div>
+        `;
+        container.appendChild(card);
+
+        const dot = document.createElement('div');
+        dot.className = `flex-1 h-full rounded-sm flex items-center justify-center transition-all ${state === 2 ? 'bg-[#10B981]' : state === 1 ? 'bg-[#D97706]' : 'bg-[#1C1C21]'}`;
+        if (state === 2) dot.innerHTML = `<span style="font-size:8px;color:white;font-weight:bold;">✓</span>`;
+        if (state === 1) dot.innerHTML = `<div class="w-1.5 h-1.5 bg-white rounded-full"></div>`;
+        battery.appendChild(dot);
+      });
+
+      document.getElementById('progress-percent').innerText = `${Math.round((activeCount / 17) * 100)}% ACTIVE`;
+    }
+
+    render();
+  </script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
